@@ -1,5 +1,5 @@
 import { test } from '@playwright/test'
-import ContactPage from '../pages/ContactPage'
+import ContactPage from '../../pages/ContactPage'
 
 
 test('Fill Contact Form', async ({ page }) => {
