@@ -10,10 +10,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
   use: {
     baseURL: 'https://tax-sandbox.getapril.com',
     headless: !!process.env.CI,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
 
   webServer: {

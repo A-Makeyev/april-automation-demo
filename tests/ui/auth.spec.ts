@@ -16,5 +16,6 @@ test.describe('Valid Login', () => {
     await loginPage.pressContinue()
     
     await expect(loginPage.errorText).toBeVisible()
+    await loginPage.takeScreenshot()
   })
 })

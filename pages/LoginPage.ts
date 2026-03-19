@@ -1,4 +1,4 @@
-import { Locator, Page } from "@playwright/test";
+import { Locator, Page, test } from "@playwright/test";
 
 export class LoginPage {
     private readonly emailInput: Locator
@@ -37,5 +37,16 @@ export class LoginPage {
         for (let x = 1; x <= otp.length; x++) {
             await this.otpInput(x).fill(String(otp[x - 1]))
         }
+    }
+
+    async takeScreenshot() {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        const screenshotName = `screenshot-${timestamp}.png`
+        const screenshotBuffer = await this.page.screenshot()
+        
+        await test.info().attach(screenshotName, {
+            body: screenshotBuffer,
+            contentType: 'image/png'
+        });
     }
 }
