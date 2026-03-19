@@ -362,7 +362,7 @@ jobs:
               // Update last updated timestamp
               function updateTimestamp() {
                 const now = new Date();
-                const formatted = now.toLocaleString('en-US', {
+                const formatted = now.toLocaleString('en-GB', {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',
