@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -77,6 +79,9 @@ jobs:
           ls -d Run-* 2>/dev/null | sed 's/Run-//' | sort -n | head -n -10 | while read num; do
             rm -rf "Run-$num"
           done
+
+          # Create metadata for auto-refresh
+          echo "${{ github.run_number }}" > latest.txt
 
           # Create index page
           cat > index.html << 'EOF'
@@ -238,9 +243,47 @@ jobs:
               .badge-failed {
                 background: #ef4444;
               }
+              .update-banner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: #10b981;
+                color: white;
+                padding: 12px;
+                text-align: center;
+                font-weight: 600;
+                z-index: 9999;
+                display: none;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+              }
+              @keyframes slideDown {
+                from { transform: translateY(-100%); }
+                to { transform: translateY(0); }
+              }
+              .update-banner button {
+                background: white;
+                color: #10b981;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                margin-left: 15px;
+                font-weight: 700;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: transform 0.2s;
+              }
+              .update-banner button:hover {
+                transform: scale(1.05);
+              }
             </style>
           </head>
           <body>
+            <div id="updateBanner" class="update-banner">
+              ✨ New test results are available!
+              <button onclick="refreshReports()">See Results</button>
+            </div>
             <div class="container">
               <div class="header">
                 <h1>🧪 April Automation Reports</h1>
@@ -342,6 +385,33 @@ jobs:
 
               // Set initial timestamp
               updateTimestamp();
+
+              // Auto-refresh logic
+              const currentRun = "${{ github.run_number }}";
+              let checkCount = 0;
+
+              async function checkForUpdates() {
+                try {
+                  // Cache busting for the metadata file
+                  const response = await fetch('latest.txt?t=' + Date.now());
+                  if (response.ok) {
+                    const latestRun = (await response.text()).trim();
+                    if (latestRun && latestRun !== currentRun) {
+                      document.getElementById('updateBanner').style.display = 'block';
+                      // Also update the refresh button to glow
+                      document.querySelector('.refresh-btn').style.background = '#10b981';
+                    }
+                  }
+                } catch (e) {
+                  console.log('Update check failed', e);
+                }
+              }
+
+              // Check every 30 seconds
+              setInterval(checkForUpdates, 30000);
+              
+              // Initial check after 10 seconds
+              setTimeout(checkForUpdates, 10000);
             </script>
           </body>
           </html>
@@ -349,7 +419,7 @@ jobs:
 
           cd ..
 
-      - name: Deploy to GitHub Pages
+      - name: Save results history to branch
         if: always()
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -357,3 +427,24 @@ jobs:
           publish_dir: ./Results
           publish_branch: gh-pages
           force_orphan: false
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./Results
+
+  deploy:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
